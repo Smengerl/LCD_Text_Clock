@@ -1,7 +1,11 @@
 #define HAS_ENCODER
 #define HAS_PAGE_TIME
 #define HAS_PAGE_DATE
-#define HAS_PAGE_TEMP
+// #define HAS_PAGE_TEMP
+
+
+
+
 
 
 #include <Arduino.h>
@@ -108,8 +112,10 @@ enum t_page {
 // Textausrichtung im Display
 #define TEXT_ALIGNMENT TEXT_ALIGNMENT_CENTERED
 
-
-#define ANIMATION_FRAME_LENGTH 5
+/**
+ * Duration in ms of a single animation frame
+ */
+#define ANIMATION_FRAME_DURATION 10
 
 
 
@@ -164,6 +170,19 @@ uint32_t displayOnUntil = 0;         // interner Timeout Zähler, wann Display w
 
 char last_stable_text[STRING_BUFFER_SIZE] = "";
 
+
+
+
+
+
+
+#if !defined(HAS_PAGE_TIME)
+#if !defined(HAS_PAGE_DATE)
+#if !defined(HAS_PAGE_TEMP)
+  #error No page defined!
+#endif
+#endif
+#endif
 
 
 
@@ -561,7 +580,7 @@ void loop() {
       strcpy(last_stable_text, s1);
 //      printStringToLCD(s2);
     } else {
-      delay(ANIMATION_FRAME_LENGTH);
+      delay(ANIMATION_FRAME_DURATION);
     }
   }
 
