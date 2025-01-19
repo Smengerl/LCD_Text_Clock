@@ -75,12 +75,14 @@ Printer settings:
 
 - The ESP is screwed to the back of the housing.
 - The acrylic plate is glued to the front (optional)
-- The LCD is then fix via screws to the front
+- The LCD is then fixed via screws to the front
 - When using the pushbuttons, click the pushbutton PCB into the baseplate and snap-in the pushbutton top cover. Then slide it into the lower part of the housing  
 - Finally the lower and the upper part of the housing are assembled and tightened via the screws.
+- Consider using some hot glue to make sure everything stays in place
 
 
-Assembly Video TBD
+
+![assembly](./print/rendering/assembly.gif)
 
 
 
