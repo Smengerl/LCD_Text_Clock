@@ -21,7 +21,7 @@
 
 
 
-// CONSTANTS TO ADAPT BEHAVIOR ****************************************************
+// PAGES ****************************************************
 
 enum t_page {
 #ifdef HAS_PAGE_TIME
@@ -30,50 +30,49 @@ enum t_page {
 #ifdef HAS_PAGE_DATE
   PAGE_DATE,
 #endif
-#ifdef HAS_PAGE_TEMP
-  PAGE_TEMP,
-#endif
   MAX_VALUE
 };
 
-
-
-LiquidCrystal_I2C lcd(I2C_ADDRESS_LCD, LCD_CHAR_PER_LINE, LCD_LINES);
-
-
-
-uint8_t* weights = createWeightTable(LCD_CHAR_PER_LINE, LCD_LINES, H_TEXT_ALIGNMENT, V_TEXT_ALIGNMENT);
-
-
-
-// ANIMATON *******************************************************************************************
-
-TextAnimation animation(LCD_CHAR_PER_LINE, LCD_LINES);
-
-
-// *******************************************************************************************
-
-#define STRING_BUFFER_SIZE LCD_CHAR_PER_LINE * LCD_LINES + 20
+#if !defined(HAS_PAGE_TIME)
+#if !defined(HAS_PAGE_DATE)
+  #error No page defined!
+#endif
+#endif
 
 t_page page(START_PAGE);
 
-uint32_t displayOnUntil = 0;         // interner Timeout Zähler, wann Display wieder abgeschaltet werden soll
 
+
+
+// VARS ****************************************************
+
+// LCD
+LiquidCrystal_I2C lcd(I2C_ADDRESS_LCD, LCD_CHAR_PER_LINE, LCD_LINES);
+
+// Cached weight table for faster text layouting
+uint8_t* weights = createWeightTable(LCD_CHAR_PER_LINE, LCD_LINES, H_TEXT_ALIGNMENT, V_TEXT_ALIGNMENT);
+
+// Animation helper object
+TextAnimation animation(LCD_CHAR_PER_LINE, LCD_LINES);
+
+
+
+
+
+
+#define STRING_BUFFER_SIZE LCD_CHAR_PER_LINE * LCD_LINES + 20
 char last_stable_text[STRING_BUFFER_SIZE] = "";
 
 
 
+uint32_t displayOnUntil = 0;      
 
 
 
 
-#if !defined(HAS_PAGE_TIME)
-#if !defined(HAS_PAGE_DATE)
-#if !defined(HAS_PAGE_TEMP)
-  #error No page defined!
-#endif
-#endif
-#endif
+
+
+
 
 
 
@@ -89,86 +88,99 @@ void printToLcd(char *s) {
 
 
 
+// BACKLIGHT HANDLING *****************************************
 
-bool backlightEnabled;
 
-bool isBacklightEnabled() {
-  return backlightEnabled;
-}
+#ifdef HAS_BACKLIGHT
 
-void setBacklightEnabled(bool value) {
-  if (value) {
-    log_d("Backlight enabled");
-  } else {
-    log_d("Backlight disabled");
+  bool backlightEnabled;
+
+  bool isBacklightEnabled() {
+    return backlightEnabled;
   }
-  digitalWrite(PIN_LCD_BACKLIGHT, value);
-  backlightEnabled = value;
-}
 
-void setBacklightEnabled(bool value, uint16_t duration) {
-  if (backlightEnabled == value) return;
-
-  // "Forecast" final value
-  backlightEnabled = value;
-
-  if (duration > 0) {
+  void setBacklightEnabled(bool value) {
     if (value) {
-      // Dimmen zum Einschalten
-      log_d("Dim backlight from off to on in %d ms", duration);
-      for (int i = 0; i < duration; i = i + DIMMING_BACKLIGHT_STEPSIZE) {
-        float t = ((float)255 * i) / duration;
-        analogWrite(PIN_LCD_BACKLIGHT, (int)t);
-        vTaskDelay(pdMS_TO_TICKS(DIMMING_BACKLIGHT_STEPSIZE));
-      }
+      log_d("Backlight enabled");
     } else {
-      // Dimmen zum Ausschalten
-      log_d("Dim backlight from on to off in %d ms", duration);
-      for (int i = 0; i < duration; i = i + DIMMING_BACKLIGHT_STEPSIZE) {
-        float t = 255 - ((float)255 * i) / duration;
-        analogWrite(PIN_LCD_BACKLIGHT, (int)t);
-        vTaskDelay(pdMS_TO_TICKS(DIMMING_BACKLIGHT_STEPSIZE));
+      log_d("Backlight disabled");
+    }
+    digitalWrite(PIN_LCD_BACKLIGHT, value);
+    backlightEnabled = value;
+  }
+
+  void setBacklightEnabled(bool value, uint16_t duration) {
+    if (backlightEnabled == value) return;
+
+    // "Forecast" final value
+    backlightEnabled = value;
+
+    if (duration > 0) {
+      if (value) {
+        // Dimmen zum Einschalten
+        log_d("Dim backlight from off to on in %d ms", duration);
+        for (int i = 0; i < duration; i = i + DIMMING_BACKLIGHT_STEPSIZE) {
+          float t = ((float)255 * i) / duration;
+          analogWrite(PIN_LCD_BACKLIGHT, (int)t);
+          vTaskDelay(pdMS_TO_TICKS(DIMMING_BACKLIGHT_STEPSIZE));
+        }
+      } else {
+        // Dimmen zum Ausschalten
+        log_d("Dim backlight from on to off in %d ms", duration);
+        for (int i = 0; i < duration; i = i + DIMMING_BACKLIGHT_STEPSIZE) {
+          float t = 255 - ((float)255 * i) / duration;
+          analogWrite(PIN_LCD_BACKLIGHT, (int)t);
+          vTaskDelay(pdMS_TO_TICKS(DIMMING_BACKLIGHT_STEPSIZE));
+        }
       }
     }
+    // Finally use regular "digital" write to ensure the backlight is fully on/off
+    setBacklightEnabled(value);
   }
-  // Finally use regular "digital" write to ensure the backlight is fully on/off
-  setBacklightEnabled(value);
-}
 
 
 
-SemaphoreHandle_t backlightSemaphore = NULL;
+  SemaphoreHandle_t backlightSemaphore = NULL;
 
-/**
- * Helper function to be used in separate task to run asynchronously
- */
-void fadeBacklightTask(void *pvParameters) {
-  if (backlightSemaphore == NULL) {
-    backlightSemaphore = xSemaphoreCreateBinary();
-  } else {
-    if (!xSemaphoreTake(backlightSemaphore, pdMS_TO_TICKS(
-      _max(BACKLIGHT_DIMMING_DURATION_ON, BACKLIGHT_DIMMING_DURATION_OFF)))) {
+  /**
+   * Helper function to be used in separate task to run asynchronously
+   */
+  void fadeBacklightTask(void *pvParameters) {
+    if (backlightSemaphore == NULL) {
+      backlightSemaphore = xSemaphoreCreateBinary();
+    } else {
+      if (!xSemaphoreTake(backlightSemaphore, pdMS_TO_TICKS(
+        _max(BACKLIGHT_DIMMING_DURATION_ON, BACKLIGHT_DIMMING_DURATION_OFF)))) {
 
-      log_e("Timeout taking semaphore for backlight fading!");
-      vTaskDelete(NULL); 
+        log_e("Timeout taking semaphore for backlight fading!");
+        vTaskDelete(NULL); 
+      }
     }
+
+    // The parameter provided when the task was created determines if this is to fade the backlight in or out
+    if ((bool) pvParameters ) {
+      setBacklightEnabled(true, BACKLIGHT_DIMMING_DURATION_ON);
+    } else {
+      setBacklightEnabled(false, BACKLIGHT_DIMMING_DURATION_OFF);
+    }
+    
+    xSemaphoreGive(backlightSemaphore);
+    vTaskDelete(NULL); // Delete this task when done
   }
 
-  // The parameter provided when the task was created determines if this is to fade the backlight in or out
-  if ((bool) pvParameters ) {
-    setBacklightEnabled(true, BACKLIGHT_DIMMING_DURATION_ON);
-  } else {
-    setBacklightEnabled(false, BACKLIGHT_DIMMING_DURATION_OFF);
-  }
-  
-  xSemaphoreGive(backlightSemaphore);
-  vTaskDelete(NULL); // Delete this task when done
-}
+
+#endif
 
 
 
 
 
+
+
+
+
+
+// NTP *****************************************
 
 SemaphoreHandle_t ntpSyncSemaphore = NULL;
 
@@ -210,6 +222,13 @@ void setupDateTime() {
   vSemaphoreDelete(ntpSyncSemaphore); // Delete the semaphore
 }
 
+
+
+
+
+
+
+// HARDWARE INITALIZATION *****************************************
 
 void setupWiFi() {
   //WiFiManager, Local variable sufficient as once its business is done, there is no need to keep it any longer
@@ -267,7 +286,9 @@ void disableBluetooth() {
 void setupLCD() {
     // enable LCD backlight
   pinMode(PIN_LCD_BACKLIGHT, OUTPUT);
-  setBacklightEnabled(true);
+  #ifdef HAS_BACKLIGHT
+    setBacklightEnabled(true);
+  #endif
 
   lcd.init(); 
   lcd.clear();
@@ -506,56 +527,57 @@ void loop() {
       t4 = false;
     }
 
+    #ifdef HAS_BACKLIGHT
+      // Activate backlight for predefined time after button was pressed or turned
+      #ifdef BACKLIGHT_ON_TIME
+        if (
+          t1 || t2 || t3 || t4 // Any key pressed?
+          || displayOnUntil == 0  // ... on startup
+        ) {
+          // Turn on display
+          log_i("Trigger display backlight");
 
-    // Activate backlight for predefined time after button was pressed or turned
-    #ifdef BACKLIGHT_ON_TIME
-      if (
-        t1 || t2 || t3 || t4 // Any key pressed?
-        || displayOnUntil == 0  // ... on startup
-      ) {
-        // Turn on display
-        log_i("Trigger display backlight");
-
-        displayOnUntil = now + BACKLIGHT_ON_TIME;
-      }
-
-      if (now < displayOnUntil) {
-        if (!isBacklightEnabled()) {
-          log_i("Turning Backlight on...");
-          #ifdef BACKLIGHT_DIMMING_DURATION_ON
-            xTaskCreate(
-              fadeBacklightTask, // Task function
-              "fadeInBacklight", // Name of the task
-              4096,              // Stack size (in words)
-              (void*)true,       // Task input parameter
-              1,                 // Priority of the task
-              NULL               // Task handle
-            );
-          #else
-            setBacklightEnabled(true);
-          #endif
-          log_i("Backlight turned on");
+          displayOnUntil = now + BACKLIGHT_ON_TIME;
         }
-      } else {
-        if (isBacklightEnabled()) {
-          log_i("Turning Backlight off...");
-          #ifdef BACKLIGHT_DIMMING_DURATION_OFF
-            xTaskCreate(
-              fadeBacklightTask,  // Task function
-              "fadeOutBacklight", // Name of the task
-              4096,               // Stack size (in words)
-              (void*)false,       // Task input parameter
-              1,                  // Priority of the task
-              NULL                // Task handle
-            );
-          #else
-            setBacklightEnabled(false);
-          #endif
-          log_i("Backlight turned off");
+
+        if (now < displayOnUntil) {
+          if (!isBacklightEnabled()) {
+            log_i("Turning Backlight on...");
+            #ifdef BACKLIGHT_DIMMING_DURATION_ON
+              xTaskCreate(
+                fadeBacklightTask, // Task function
+                "fadeInBacklight", // Name of the task
+                4096,              // Stack size (in words)
+                (void*)true,       // Task input parameter
+                1,                 // Priority of the task
+                NULL               // Task handle
+              );
+            #else
+              setBacklightEnabled(true);
+            #endif
+            log_i("Backlight turned on");
+          }
+        } else {
+          if (isBacklightEnabled()) {
+            log_i("Turning Backlight off...");
+            #ifdef BACKLIGHT_DIMMING_DURATION_OFF
+              xTaskCreate(
+                fadeBacklightTask,  // Task function
+                "fadeOutBacklight", // Name of the task
+                4096,               // Stack size (in words)
+                (void*)false,       // Task input parameter
+                1,                  // Priority of the task
+                NULL                // Task handle
+              );
+            #else
+              setBacklightEnabled(false);
+            #endif
+            log_i("Backlight turned off");
+          }
         }
-      }
+      #endif
     #endif
-
+    
     if (t1_pos) {
       page = static_cast<t_page>(page + 1);
       if (page == t_page::MAX_VALUE) {

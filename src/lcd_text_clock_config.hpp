@@ -6,11 +6,18 @@
 // ***********************************************************
 // FEATURES
 // ***********************************************************
+
+// Pushbuttons supported
 #define HAS_BUTTONS
+
+// Smart background light
+#define HAS_BACKLIGHT
+
+// Pages
 #define HAS_PAGE_TIME
 #define HAS_PAGE_DATE
 
-// Startseite
+// Page to start with
 #define START_PAGE PAGE_TIME
 
 
@@ -72,29 +79,30 @@
 // BACKLIGHT
 // ***********************************************************
 
-/** 
- * Time in s to keep the display backlight on after user input 
- * Do not define if no dynamic backlight control is needed
- */
-#define BACKLIGHT_ON_TIME 10
+#ifdef HAS_BACKLIGHT
+  /** 
+   * Time in s to keep the display backlight on after user input 
+   * Do not define if no dynamic backlight control is needed
+   */
+  #define BACKLIGHT_ON_TIME 10
 
-/** 
- * Time in ms to dim the backlight to full brightness. 
- * Do not define or set to 0 if no dimming shall happen
- */
-#define BACKLIGHT_DIMMING_DURATION_ON 500
+  /** 
+   * Time in ms to dim the backlight to full brightness. 
+   * Do not define or set to 0 if no dimming shall happen
+   */
+  #define BACKLIGHT_DIMMING_DURATION_ON 500
 
-/** 
- * Time in ms to dim the backlight to off. 
- * Do not define or set to 0 if no dimming shall happen
- */
-#define BACKLIGHT_DIMMING_DURATION_OFF 2000
+  /** 
+   * Time in ms to dim the backlight to off. 
+   * Do not define or set to 0 if no dimming shall happen
+   */
+  #define BACKLIGHT_DIMMING_DURATION_OFF 2000
 
-/**
- * Steps in ms to fade in/out of backlight
- */
-#define DIMMING_BACKLIGHT_STEPSIZE 10
-
+  /**
+   * Steps in ms to fade in/out of backlight
+   */
+  #define DIMMING_BACKLIGHT_STEPSIZE 10
+#endif
 
 
 
