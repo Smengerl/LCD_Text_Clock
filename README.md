@@ -10,41 +10,25 @@ A text-based clock using an LCD display with I2C interface on an ESP microcontro
 
 The whole project rather serves as an example how text on a LCD display can be beautifully presented to users and can easily be extended/adapter to match your usecase.
 
+1. Without pushbuttons
+<img src="./print/photos/example_usage_nobuttons.jpg" alt="example_usage_nobuttons"/>
+
+1. With 4 pushbuttons
 <img src="./print/photos/example_usage.jpg" alt="example_usage"/>
 
 
-## Hardware Requirements
-
-- ESP32 Dev module
-- 20x4 character LCD display with I2C interface (this one fits the housing)
-- I2C module for LCD (e.g., PCF8574) - ideally one that has a jumper to enable/disable backlight as we can "misuse" this to dim the backlight via GPIO
-- Optional: Push buttons 
-
-
-## Software Requirements
-
-- PlatformIO
-- LiquidCrystal_I2C (via PIO)
-- ESPDateTime (via PIO)
-- WiFiManager (via PIO)
 
 ## Mechanics
 
 Two different types of housings for 20*4 LCD displays are provided.
 Using the acrylic plate on top of the LCD is optional but gives a cleaner look (not used in the example photos)
 
-1. Without pushbuttons:
+Very simple housing that consist of a front and a back piece (Shown is the version with the pushbuttons)
 
-Very simple housing that consist of a front and a back piece.
-
-TBD
-
-
-2. With 4 pushbuttons:
-
-Simple housing that has a row of four pushbuttons on top of the case.
-
-TBD
+| Front                                                | Back                                                 | Isometric |
+| ---------------------------------------------------- | ---------------------------------------------------- | --------- |
+| <img src="./print/rendering/front.png" alt="front"/> | <img src="./print/rendering/back.png" alt="back"/>   | <img src="./print/rendering/iso.png" alt="iso"/> |
+| <img src="./print/photos/front.jpg" alt="front"/>    | <img src="./print/photos/back.jpg" alt="back"/>      | <img src="./print/photos/iso.jpg" alt="iso"/> |
 
 
 ### 3D-Printed Parts
@@ -53,8 +37,8 @@ TBD
 
 | Filename                           | Thumbnail                                                                            | Required | Notes |
 | ---------------------------------- | -------------------------------------------------------------------------------------| -------- | ------|
-| `./print/Lower_part_nobuttons.stl` | <img src="./print/rendering/Lower_part_nobuttons.png" alt="Lower part" width="300"/> | 1        | |
-| `./print/Upper_part_nobuttons.stl` | <img src="./print/rendering/Upper_part_nobuttons.png" alt="Upper part" width="300"/> | 1        | |
+| `./print/Lower_part_nobuttons.stl` | <img src="./print/rendering/Lower_part_nobuttons.png" alt="Lower part" width="300"/> | 1        |       |
+| `./print/Upper_part_nobuttons.stl` | <img src="./print/rendering/Upper_part_nobuttons.png" alt="Upper part" width="300"/> | 1        |       |
 
 
 2. With 4 pushbuttons:
@@ -62,10 +46,10 @@ TBD
 
 | Filename                       | Thumbnail                                                                              | Required | Notes |
 | ------------------------------ | ---------------------------------------------------------------------------------------| -------- | ------|
-| `./print/Lower_part.stl`       | <img src="./print/rendering/Lower_part.png" alt="Lower part" width="300"/>             | 1        | |
-| `./print/Upper_part.stl`       | <img src="./print/rendering/Upper_part.png" alt="Upper part" width="300"/>             | 1        | |
-| `./print/Pushbutton_base.stl`  | <img src="./print/rendering/Pushbutton_base.png" alt="Pushbutton_base" width="300"/>   | 1        | |
-| `./print/Pushbutton_cover.stl` | <img src="./print/rendering/Pushbutton_cover.png" alt="Pushbutton_cover" width="300"/> | 1        | |
+| `./print/Lower_part.stl`       | <img src="./print/rendering/Lower_part.png" alt="Lower part" width="300"/>             | 1        |       |
+| `./print/Upper_part.stl`       | <img src="./print/rendering/Upper_part.png" alt="Upper part" width="300"/>             | 1        |       |
+| `./print/Pushbutton_base.stl`  | <img src="./print/rendering/Pushbutton_base.png" alt="Pushbutton_base" width="300"/>   | 1        |       |
+| `./print/Pushbutton_cover.stl` | <img src="./print/rendering/Pushbutton_cover.png" alt="Pushbutton_cover" width="300"/> | 1        |       |
 
 
 Printer settings:
@@ -77,7 +61,12 @@ Printer settings:
 
 ### Required parts
 
-TBD
+| Name              | Spec                          | Required | Notes |
+| ----------------- | ----------------------------- | -------- | ------|
+| countersunk screw | M3 5mm, e.g. DIN EN ISO 4762  | 4        | To attach ESP to back of housing |
+| countersunk screw | M3 5mm, e.g. DIN EN ISO 4762  | 4        | To attach display to back of housing |
+| cylinder head screw | M3 10mm | 4        | To fix back and front of housing |
+| semi-transparent acrylic board | max 2mm, 95-100mm * 40-50mm | 1        | Optional, for cleaner look |
 
 
 
@@ -92,6 +81,40 @@ TBD
 
 
 Assembly Video TBD
+
+
+
+
+
+
+## Electronics
+
+### Part list
+
+| Unit price | Quantity | Partname                   | Example   | Notes |
+| ---------- | -------- | -------------------------- | --------- | ----- |
+| 5 USD      | 1        | ESP32 Dev module           | <a href="https://de.aliexpress.com/item/1005006474308440.html">AliExpress</a> | USB-C Version |
+| 5 USD      | 1        | 2004 HD44780 character LCD module | <a href="https://de.aliexpress.com/item/1005006656450425.html">AliExpress</a> | Consider "negative" LCD (colored fonts on black background), as this gives a clean look, esp. when placing under an acrylic plate |
+| 1-2 USD    | 1        | PCF8574 I2C module for LCD | <a href="https://de.aliexpress.com/item/1005006686091415.html">AliExpress</a> | You might want to pick one that has a jumper to enable/disable backlight as we can "misuse" this to dim the backlight via GPIO |
+| 1-2 USD    | Optional | 4 button module            | <a href="https://de.aliexpress.com/item/1005007272677522.html">AliExpress</a> | Optional | Unsolder SMD LED |
+
+Total cost about 10-15 USD!
+
+
+
+### Schematics
+
+<img src="./schematics/schematics.png" alt="schematics"/>
+
+<img src="./schematics/breadboard.png" alt="schematics"/>
+
+
+## Software Requirements
+
+- PlatformIO
+- LiquidCrystal_I2C (via PIO)
+- ESPDateTime (via PIO)
+- WiFiManager (via PIO)
 
 
 ## Installation
