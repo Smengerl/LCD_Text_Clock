@@ -1,13 +1,12 @@
 # LCD Text Clock
 
 A text-based clock using an LCD display with I2C interface on an ESP microcontroller with automatic NTP time sync.
-- Displays the current time as text like "five minutes to four"
-- 16x2 or 20x4 character LCD display support
+- Displays the current time and date as text like "five minutes to four"
+- 16x2, 40*2 or 20x4 character LCD display support
 - Customizable animations
-- Can be extended with rotary encoders or buttons to flip between multiple pages with different information
-- Automatic backlight switching and dimming 
+- Supports buttons to flip between modes showing different information and can be easily extended by further or them 
+- Automatic backlight switching and dimming (optional feature) 
 - Automatic time synchronization using NTP
-- Energy saving measures
 
 The whole project rather serves as an example how text on a LCD display can be beautifully presented to users and can easily be extended/adapter to match your usecase.
 
@@ -17,9 +16,9 @@ The whole project rather serves as an example how text on a LCD display can be b
 ## Hardware Requirements
 
 - ESP32 Dev module
-- 16x2 or 20x4 character LCD display with I2C interface
-- I2C module for LCD (e.g., PCF8574)
-- Optional: Push buttons
+- 20x4 character LCD display with I2C interface (this one fits the housing)
+- I2C module for LCD (e.g., PCF8574) - ideally one that has a jumper to enable/disable backlight as we can "misuse" this to dim the backlight via GPIO
+- Optional: Push buttons 
 
 
 ## Software Requirements
@@ -31,47 +30,68 @@ The whole project rather serves as an example how text on a LCD display can be b
 
 ## Mechanics
 
-Renderings / Prototype:
-| Front                                                | Back                                                 | Isometric |
-| ---------------------------------------------------- | ---------------------------------------------------- | --------- |
-| <img src="./print/rendering/front.png" alt="front"/> | <img src="./print/rendering/back.png" alt="back"/>   | <img src="./print/rendering/iso.png" alt="iso"/> |
-| <img src="./print/photos/front.jpg" alt="front"/> | <img src="./print/photos/back.jpg" alt="back"/>   | <img src="./print/photos/iso.jpg" alt="iso"/> |
+Two different types of housings for 20*4 LCD displays are provided.
+Using the acrylic plate on top of the LCD is optional but gives a cleaner look (not used in the example photos)
+
+1. Without pushbuttons:
+
+Very simple housing that consist of a front and a back piece.
+
+TBD
 
 
-The only mechanical part required is the housing which consists of a front and a back piece.
-Using the acrylic plate on top of the LED matrix display is optional but gives a cleaner look (not used in the example photos)
+2. With 4 pushbuttons:
+
+Simple housing that has a row of four pushbuttons on top of the case.
+
+TBD
+
 
 ### 3D-Printed Parts
 
-| Filename                     | Thumbnail                                                                | Required | Notes |
-| ---------------------------- | -------------------------------------------------------------------------| -------- | ------|
-| `./print/frontside.stl`      | <img src="./print/rendering/frontside.png" alt="frontside" width="300"/> | 1        | |
-| `./print/backside.stl`       | <img src="./print/rendering/backside.png" alt="backside" width="300"/>   | 1        | |
+1. Without pushbuttons:
+
+| Filename                           | Thumbnail                                                                            | Required | Notes |
+| ---------------------------------- | -------------------------------------------------------------------------------------| -------- | ------|
+| `./print/Lower_part_nobuttons.stl` | <img src="./print/rendering/Lower_part_nobuttons.png" alt="Lower part" width="300"/> | 1        | |
+| `./print/Upper_part_nobuttons.stl` | <img src="./print/rendering/Upper_part_nobuttons.png" alt="Upper part" width="300"/> | 1        | |
+
+
+2. With 4 pushbuttons:
+
+
+| Filename                       | Thumbnail                                                                              | Required | Notes |
+| ------------------------------ | ---------------------------------------------------------------------------------------| -------- | ------|
+| `./print/Lower_part.stl`       | <img src="./print/rendering/Lower_part.png" alt="Lower part" width="300"/>             | 1        | |
+| `./print/Upper_part.stl`       | <img src="./print/rendering/Upper_part.png" alt="Upper part" width="300"/>             | 1        | |
+| `./print/Pushbutton_base.stl`  | <img src="./print/rendering/Pushbutton_base.png" alt="Pushbutton_base" width="300"/>   | 1        | |
+| `./print/Pushbutton_cover.stl` | <img src="./print/rendering/Pushbutton_cover.png" alt="Pushbutton_cover" width="300"/> | 1        | |
+
 
 Printer settings:
 - All printed parts designed for PETG. 
 - Best experience on my printer was to print the front upside down (the actual front of the case facing the print bed) as this does not require any supports. For a cleaner look you can consider to print it reversed with ironing enabled but note that this requires a lot of support material. 
-- Using fuzzy skin for all outside walls creates a nice touch
+- Using fuzzy skin for all outside walls creates a nice look
+- Use ironing to get a nice clean look on top of the pushbutton baseplate and cover
 - No rafts/brim etc. reguired for any model.
 
 ### Required parts
 
-| Name              | Spec                          | Required | Notes |
-| ----------------- | ----------------------------- | -------- | ------|
-| countersunk screw | M3 5mm, e.g. DIN EN ISO 4762  | 4        | To attach ESP to back of housing |
-| countersunk screw | M3 10mm, e.g. DIN EN ISO 4762 | 4        | To attach display to back of housing |
-| countersunk screw | M3 10mm, e.g. DIN EN ISO 4762 | 4        | To fix back and front of housing |
-| semi-transparent acrylic board | max 2mm, 140-150mm * 33-35mm | 1        | Optional, for cleaner look |
+TBD
+
+
+
 
 ### Assembly
 
 - The ESP is screwed to the back of the housing.
-- The acrylic plate is glued to the front.
-- The LCD is then fix via screws
-- Finally the front of the housing is snapped into the back and tightened via the screws from the back.
+- The acrylic plate is glued to the front (optional)
+- The LCD is then fix via screws to the front
+- When using the pushbuttons, click the pushbutton PCB into the baseplate and snap-in the pushbutton top cover. Then slide it into the lower part of the housing  
+- Finally the lower and the upper part of the housing are assembled and tightened via the screws.
 
-![assembly](./print/rendering/assembly.gif)
 
+Assembly Video TBD
 
 
 ## Installation
@@ -95,5 +115,7 @@ Printer settings:
 ## Customization ideas
 
 - Modify the text and backlight settings in the code to customize the display.
-- Write your own animations for text transitions
 - Adjust the NTP server and time zone settings as needed.
+- Add more pages, e.g. showing sensor data
+- Get weather forecast via internet and display it on the screen with custom characters
+- Write your own animations for text transitions
