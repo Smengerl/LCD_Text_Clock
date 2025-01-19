@@ -1,34 +1,35 @@
-#include <avr/pgmspace.h>
+// #include <avr/pgmspace.h>
+#include <Arduino.h>
 
 
+const char STRING_HOUR_00[] = "zwölf";
+const char STRING_HOUR_01[] = "eins";
+const char STRING_HOUR_02[] = "zwei";
+const char STRING_HOUR_03[] = "drei";
+const char STRING_HOUR_04[] = "vier";
+const char STRING_HOUR_05[] = "fünf";
+const char STRING_HOUR_06[] = "sechs";
+const char STRING_HOUR_07[] = "sieben";
+const char STRING_HOUR_08[] = "acht";
+const char STRING_HOUR_09[] = "neun";
+const char STRING_HOUR_10[] = "zehn";
+const char STRING_HOUR_11[] = "elf";
+const char STRING_HOUR_12[] = "zwölf";
+const char STRING_HOUR_13[] = "eins";
+const char STRING_HOUR_14[] = "zwei";
+const char STRING_HOUR_15[] = "drei";
+const char STRING_HOUR_16[] = "vier";
+const char STRING_HOUR_17[] = "fünf";
+const char STRING_HOUR_18[] = "sechs";
+const char STRING_HOUR_19[] = "sieben";
+const char STRING_HOUR_20[] = "acht";
+const char STRING_HOUR_21[] = "neun";
+const char STRING_HOUR_22[] = "zehn";
+const char STRING_HOUR_23[] = "elf";
 
-const char STRING_HOUR_00[] PROGMEM = "zwölf";
-const char STRING_HOUR_01[] PROGMEM = "eins";
-const char STRING_HOUR_02[] PROGMEM = "zwei";
-const char STRING_HOUR_03[] PROGMEM = "drei";
-const char STRING_HOUR_04[] PROGMEM = "vier";
-const char STRING_HOUR_05[] PROGMEM = "fünf";
-const char STRING_HOUR_06[] PROGMEM = "sechs";
-const char STRING_HOUR_07[] PROGMEM = "sieben";
-const char STRING_HOUR_08[] PROGMEM = "acht";
-const char STRING_HOUR_09[] PROGMEM = "neun";
-const char STRING_HOUR_10[] PROGMEM = "zehn";
-const char STRING_HOUR_11[] PROGMEM = "elf";
-const char STRING_HOUR_12[] PROGMEM = "zwölf";
-const char STRING_HOUR_13[] PROGMEM = "eins";
-const char STRING_HOUR_14[] PROGMEM = "zwei";
-const char STRING_HOUR_15[] PROGMEM = "drei";
-const char STRING_HOUR_16[] PROGMEM = "vier";
-const char STRING_HOUR_17[] PROGMEM = "fünf";
-const char STRING_HOUR_18[] PROGMEM = "sechs";
-const char STRING_HOUR_19[] PROGMEM = "sieben";
-const char STRING_HOUR_20[] PROGMEM = "acht";
-const char STRING_HOUR_21[] PROGMEM = "neun";
-const char STRING_HOUR_22[] PROGMEM = "zehn";
-const char STRING_HOUR_23[] PROGMEM = "elf";
 
-void getHourOfTheDay(char *dest, int hour) {
-  const static char *const HOURS_OF_THE_DAY[] PROGMEM = {
+const char* getHourOfTheDay(int hour) {
+  const static char *HOURS_OF_THE_DAY[] = {
     STRING_HOUR_00,
     STRING_HOUR_01,
     STRING_HOUR_02,
@@ -54,40 +55,45 @@ void getHourOfTheDay(char *dest, int hour) {
     STRING_HOUR_22,
     STRING_HOUR_23
   };
+  
   if (hour >= 0 && hour < 24) {
-    strcpy_P(dest, (char *)pgm_read_ptr(&(HOURS_OF_THE_DAY[hour])));
-  } else
-    *dest = 0;
+    return HOURS_OF_THE_DAY[hour];
+//    strcpy(dest, HOURS_OF_THE_DAY[hour]);
+  } else {
+    return nullptr; 
+//    *dest = 0;
+    log_e("invalid hour: %d", hour);
+  }
 }
 
 
-const char STRING_HOUR_LONG_00[] PROGMEM = "Mitternacht";
-const char STRING_HOUR_LONG_01[] PROGMEM = "ein Uhr nachts";
-const char STRING_HOUR_LONG_02[] PROGMEM = "zwei Uhr nachts";
-const char STRING_HOUR_LONG_03[] PROGMEM = "drei Uhr nachts";
-const char STRING_HOUR_LONG_04[] PROGMEM = "vier Uhr morgens";
-const char STRING_HOUR_LONG_05[] PROGMEM = "fünf Uhr morgens";
-const char STRING_HOUR_LONG_06[] PROGMEM = "sechs Uhr morgens";
-const char STRING_HOUR_LONG_07[] PROGMEM = "sieben Uhr morgens";
-const char STRING_HOUR_LONG_08[] PROGMEM = "acht Uhr morgens";
-const char STRING_HOUR_LONG_09[] PROGMEM = "neun Uhr morgens";
-const char STRING_HOUR_LONG_10[] PROGMEM = "zehn Uhr vormittags";
-const char STRING_HOUR_LONG_11[] PROGMEM = "elf Uhr vormittags";
-const char STRING_HOUR_LONG_12[] PROGMEM = "Mittag";
-const char STRING_HOUR_LONG_13[] PROGMEM = "eins Uhr mittags";
-const char STRING_HOUR_LONG_14[] PROGMEM = "zwei Uhr nachmittags";
-const char STRING_HOUR_LONG_15[] PROGMEM = "drei Uhr nachmittags";
-const char STRING_HOUR_LONG_16[] PROGMEM = "vier Uhr nachmittags";
-const char STRING_HOUR_LONG_17[] PROGMEM = "fünf Uhr nachmittags";
-const char STRING_HOUR_LONG_18[] PROGMEM = "sechs Uhr abends";
-const char STRING_HOUR_LONG_19[] PROGMEM = "sieben Uhr abends";
-const char STRING_HOUR_LONG_20[] PROGMEM = "acht Uhr abends";
-const char STRING_HOUR_LONG_21[] PROGMEM = "neun Uhr abends";
-const char STRING_HOUR_LONG_22[] PROGMEM = "zehn Uhr abends";
-const char STRING_HOUR_LONG_23[] PROGMEM = "elf Uhr nachts";
+const char STRING_HOUR_LONG_00[] = "Mitternacht";
+const char STRING_HOUR_LONG_01[] = "ein Uhr nachts";
+const char STRING_HOUR_LONG_02[] = "zwei Uhr nachts";
+const char STRING_HOUR_LONG_03[] = "drei Uhr nachts";
+const char STRING_HOUR_LONG_04[] = "vier Uhr morgens";
+const char STRING_HOUR_LONG_05[] = "fünf Uhr morgens";
+const char STRING_HOUR_LONG_06[] = "sechs Uhr morgens";
+const char STRING_HOUR_LONG_07[] = "sieben Uhr morgens";
+const char STRING_HOUR_LONG_08[] = "acht Uhr morgens";
+const char STRING_HOUR_LONG_09[] = "neun Uhr morgens";
+const char STRING_HOUR_LONG_10[] = "zehn Uhr vormittags";
+const char STRING_HOUR_LONG_11[] = "elf Uhr vormittags";
+const char STRING_HOUR_LONG_12[] = "Mittag";
+const char STRING_HOUR_LONG_13[] = "eins Uhr mittags";
+const char STRING_HOUR_LONG_14[] = "zwei Uhr nachmittags";
+const char STRING_HOUR_LONG_15[] = "drei Uhr nachmittags";
+const char STRING_HOUR_LONG_16[] = "vier Uhr nachmittags";
+const char STRING_HOUR_LONG_17[] = "fünf Uhr nachmittags";
+const char STRING_HOUR_LONG_18[] = "sechs Uhr abends";
+const char STRING_HOUR_LONG_19[] = "sieben Uhr abends";
+const char STRING_HOUR_LONG_20[] = "acht Uhr abends";
+const char STRING_HOUR_LONG_21[] = "neun Uhr abends";
+const char STRING_HOUR_LONG_22[] = "zehn Uhr abends";
+const char STRING_HOUR_LONG_23[] = "elf Uhr nachts";
 
-void getHourOfTheDayLong(char *dest, int hour) {
-  const static char *const HOURS_OF_THE_DAY_LONG[] PROGMEM = {
+const char* getHourOfTheDayLong(int hour) {
+  const static char *HOURS_OF_THE_DAY_LONG[] = {
     STRING_HOUR_LONG_00,
     STRING_HOUR_LONG_01,
     STRING_HOUR_LONG_02,
@@ -114,29 +120,33 @@ void getHourOfTheDayLong(char *dest, int hour) {
     STRING_HOUR_LONG_23
   };
   if (hour >= 0 && hour < 24) {
-    strcpy_P(dest, (char *)pgm_read_ptr(&(HOURS_OF_THE_DAY_LONG[hour])));
-  } else
-    *dest = 0;
+    return HOURS_OF_THE_DAY_LONG[hour];
+//    strcpy(dest, HOURS_OF_THE_DAY_LONG[hour]);
+  } else {
+    return nullptr; 
+//    *dest = 0;
+    log_e("invalid hour: %d", hour);
+  }
 }
 
 
 
 
-const char STRING_MONTHS_00[] PROGMEM = "Januar";
-const char STRING_MONTHS_01[] PROGMEM = "Februar";
-const char STRING_MONTHS_02[] PROGMEM = "März";
-const char STRING_MONTHS_03[] PROGMEM = "April";
-const char STRING_MONTHS_04[] PROGMEM = "Mai";
-const char STRING_MONTHS_05[] PROGMEM = "Juni";
-const char STRING_MONTHS_06[] PROGMEM = "Juli";
-const char STRING_MONTHS_07[] PROGMEM = "August";
-const char STRING_MONTHS_08[] PROGMEM = "September";
-const char STRING_MONTHS_09[] PROGMEM = "Oktober";
-const char STRING_MONTHS_10[] PROGMEM = "November";
-const char STRING_MONTHS_11[] PROGMEM = "Dezember";
+const char STRING_MONTHS_00[] = "Januar";
+const char STRING_MONTHS_01[] = "Februar";
+const char STRING_MONTHS_02[] = "März";
+const char STRING_MONTHS_03[] = "April";
+const char STRING_MONTHS_04[] = "Mai";
+const char STRING_MONTHS_05[] = "Juni";
+const char STRING_MONTHS_06[] = "Juli";
+const char STRING_MONTHS_07[] = "August";
+const char STRING_MONTHS_08[] = "September";
+const char STRING_MONTHS_09[] = "Oktober";
+const char STRING_MONTHS_10[] = "November";
+const char STRING_MONTHS_11[] = "Dezember";
 
-void getMonthOfTheYear(char *dest, int month) {
-  const static char *const MONTHS_OF_THE_YEAR[] PROGMEM = {
+const char* getMonthOfTheYear(int month) {
+  const static char *MONTHS_OF_THE_YEAR[] = {
     STRING_MONTHS_00,
     STRING_MONTHS_01,
     STRING_MONTHS_02,
@@ -151,25 +161,29 @@ void getMonthOfTheYear(char *dest, int month) {
     STRING_MONTHS_11
   };
   if (month >= 0 && month < 12) {
-    strcpy_P(dest, (char *)pgm_read_ptr(&(MONTHS_OF_THE_YEAR[month])));
-  } else
-    *dest = 0;
+    return MONTHS_OF_THE_YEAR[month];
+//    strcpy(dest, MONTHS_OF_THE_YEAR[month]);
+  } else {
+    return nullptr; 
+    //*dest = '\0';
+    log_e("invalid month: %d", month);
+  }
 }
 
 
 
 
-const char STRING_DAY_0[] PROGMEM = "Sonntag";
-const char STRING_DAY_1[] PROGMEM = "Montag";
-const char STRING_DAY_2[] PROGMEM = "Dienstag";
-const char STRING_DAY_3[] PROGMEM = "Mittwoch";
-const char STRING_DAY_4[] PROGMEM = "Donnerstag";
-const char STRING_DAY_5[] PROGMEM = "Freitag";
-const char STRING_DAY_6[] PROGMEM = "Samstag";
+const char STRING_DAY_0[] = "Sonntag";
+const char STRING_DAY_1[] = "Montag";
+const char STRING_DAY_2[] = "Dienstag";
+const char STRING_DAY_3[] = "Mittwoch";
+const char STRING_DAY_4[] = "Donnerstag";
+const char STRING_DAY_5[] = "Freitag";
+const char STRING_DAY_6[] = "Samstag";
 
 
-void getDayOfTheWeek(char *dest, int day) {
-  const static char *const DAY_OF_THE_WEEK[] PROGMEM = {
+const char* getDayOfTheWeek(int day) {
+  const static char *DAY_OF_THE_WEEK[] = {
     STRING_DAY_0,
     STRING_DAY_1,
     STRING_DAY_2,
@@ -179,8 +193,12 @@ void getDayOfTheWeek(char *dest, int day) {
     STRING_DAY_6
   };
   if (day >= 0 && day < 7) {
-    strcpy_P(dest, (char *)pgm_read_ptr(&(DAY_OF_THE_WEEK[day])));
-  } else
-    *dest = 0;
+    return DAY_OF_THE_WEEK[day];
+//    strcpy(dest, DAY_OF_THE_WEEK[day]);
+  } else {
+    return nullptr; 
+//    *dest = 0;
+    log_e("invalid day of the week: %d", day);
+  }
 }
 

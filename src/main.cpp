@@ -1,25 +1,23 @@
-#define HAS_ENCODER
-#define HAS_PAGE_TIME
-#define HAS_PAGE_DATE
-// #define HAS_PAGE_TEMP
-
-
-
-
-
-
 #include <Arduino.h>
-// Rotary encoder
-#ifdef HAS_ENCODER
-#include <Encoder.h>
-#endif
-// Date and time functions using a DS3231 RTC connected via I2C and Wire lib
-#include "RTClib.h"
-#include <SPI.h>
+
+#include <cstring>
 
 #include "TextHelper.hpp"
 #include "TextAnimation.hpp"
-#include "LCDHelper.hpp"
+#include "TextAlignments.hpp"
+
+#include <LiquidCrystal_I2C.h>
+#include <WiFiManager.h>
+#include <WiFi.h>
+#include "ESPDateTime.h"
+#include "config.h"
+#include "esp_bt.h"
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/semphr.h>
+
+#include "lcd_text_clock_config.hpp"
 
 
 
@@ -39,125 +37,18 @@ enum t_page {
 };
 
 
-/**
- * Contrast when display is active
- */
-#define CONTRAST_DISPLAY_ACTIVE 100
 
-/**
- * Contrast when display is inactive
- */
-#define CONTRAST_DISPLAY_INACTIVE 200
-
-
-/** 
- * Time in s to keep the display backlight on after user input 
- * Do not define if no dynamic backlight control is needed
- */
-#define BACKLIGHT_ON_TIME 3
-
-
-/** 
- * Time in ms to dim the contrast to on. 
- * Do not define or set to 0 if no dimming shall happen
- */
-#define CONTRAST_DIMMING_DURATION_ON 0
-
-/** 
- * Time in ms to dim the contrast to off. 
- * Do not define or set to 0 if no dimming shall happen
- */
-#define CONTRAST_DIMMING_DURATION_OFF 1000
-
-/** 
- * Time in ms to dim the backlight to full brightness. 
- * Do not define or set to 0 if no dimming shall happen
- */
-#define BACKLIGHT_DIMMING_DURATION_ON 0
-
-/** 
- * Time in ms to dim the backlight to off. 
- * Do not define or set to 0 if no dimming shall happen
- */
-#define BACKLIGHT_DIMMING_DURATION_OFF 1000
+LiquidCrystal_I2C lcd(I2C_ADDRESS_LCD, LCD_CHAR_PER_LINE, LCD_LINES);
 
 
 
-
-// Animationsframes wenn Seite umgeschaltet wird
-#define ANIMATION_DELAY_SWITCH_PAGE_FRAMES 20
-
-// Animationstyp wenn Seite umgeschaltet wird
-#define ANIMATION_DELAY_SWITCH_PAGE_CW_TYPE ANIMATION_TYPE_OVERLAY_RIGHT
-// Animationstyp wenn Seite umgeschaltet wird
-#define ANIMATION_DELAY_SWITCH_PAGE_CCW_TYPE ANIMATION_TYPE_OVERLAY_LEFT 
-
-// Animationsframes wenn Werte manuell verstellt werden
-#define ANIMATION_DELAY_CHANGE_VALUE_FRAMES 10
-// Animationstyp wenn Werte manuell verstellt werden
-#define ANIMATION_DELAY_CHANGE_VALUE_TYPE ANIMATION_TYPE_MATRIX
-
-
-// Animationsframes wenn Text sich ändert innerhalb einer Seite
-#define ANIMATION_TEXT_CHANGE_FRAMES 20
-// Animationstyp wenn Text sich ändert innerhalb einer Seite
-#define ANIMATION_TEXT_CHANGE_TYPE ANIMATION_TYPE_MATRIX
-
-// Startseite
-#define START_PAGE PAGE_TIME
-
-// Text wird umgebrochen im Display am Wordende
-#define TEXT_WORD_WRAP true
-
-// Textausrichtung im Display
-#define TEXT_ALIGNMENT TEXT_ALIGNMENT_CENTERED
-
-/**
- * Duration in ms of a single animation frame
- */
-#define ANIMATION_FRAME_DURATION 10
-
-
-
-// REAL TIME CLOCK **************************************************************
-RTC_DS3231 rtc;
-
-
-// ROTARY ENCODER ***************************************************************
-
-
-#define PIN_ENCODER_CLK 9
-#define PIN_ENCODER_DT 8
-#define PIN_ENCODER_SW 10
-long encoderPos = -999;
-
-Encoder meinEncoder(PIN_ENCODER_DT, PIN_ENCODER_CLK);
-
-
-// LCD **************************************************************************
-
-#define PIN_LCD_RS 12
-#define PIN_LCD_EN 11
-#define PIN_LCD_D4 5
-#define PIN_LCD_D5 4
-#define PIN_LCD_D6 3
-#define PIN_LCD_D7 2
-
-/** Make sure to use a analog output pin to be able to use PWM (3, 5, 6, 9, 10 and 11 on Uno) */
-#define PIN_LCD_BACKLIGHT 7 
-#define PIN_LCD_CONTRAST 6
-
-#define LCD_CHAR_PER_LINE 16
-#define LCD_LINES 2
-
-LCDHelper lcd(LCD_CHAR_PER_LINE, LCD_LINES, CONTRAST_DISPLAY_ACTIVE, true, PIN_LCD_RS, PIN_LCD_EN, PIN_LCD_D4, PIN_LCD_D5, PIN_LCD_D6, PIN_LCD_D7, PIN_LCD_BACKLIGHT, PIN_LCD_CONTRAST);
+uint8_t* weights = createWeightTable(LCD_CHAR_PER_LINE, LCD_LINES, H_TEXT_ALIGNMENT, V_TEXT_ALIGNMENT);
 
 
 
 // ANIMATON *******************************************************************************************
 
 TextAnimation animation(LCD_CHAR_PER_LINE, LCD_LINES);
-
 
 
 // *******************************************************************************************
@@ -186,63 +77,238 @@ char last_stable_text[STRING_BUFFER_SIZE] = "";
 
 
 
-/// @brief Initial setup
-void setup() {
-  Serial.begin(115200);
-  Serial.print(F("Waiting for RTC to connect... "));
 
-#ifndef ESP8266
-  while (!Serial)
-    ;  // wait for serial port to connect. Needed for native USB
+
+
+void printToLcd(char *s) {
+  char buf[STRING_BUFFER_SIZE];
+  formatString(buf, s, LCD_CHAR_PER_LINE, LCD_LINES, weights);
+  lcd.setCursor(0, 0);
+  lcd.printstr(buf);
+}
+
+
+
+
+bool backlightEnabled;
+
+bool isBacklightEnabled() {
+  return backlightEnabled;
+}
+
+void setBacklightEnabled(bool value) {
+  if (value) {
+    log_d("Backlight enabled");
+  } else {
+    log_d("Backlight disabled");
+  }
+  digitalWrite(PIN_LCD_BACKLIGHT, value);
+  backlightEnabled = value;
+}
+
+void setBacklightEnabled(bool value, uint16_t duration) {
+  if (backlightEnabled == value) return;
+
+  // "Forecast" final value
+  backlightEnabled = value;
+
+  if (duration > 0) {
+    if (value) {
+      // Dimmen zum Einschalten
+      log_d("Dim backlight from off to on in %d ms", duration);
+      for (int i = 0; i < duration; i = i + DIMMING_BACKLIGHT_STEPSIZE) {
+        float t = ((float)255 * i) / duration;
+        analogWrite(PIN_LCD_BACKLIGHT, (int)t);
+        vTaskDelay(pdMS_TO_TICKS(DIMMING_BACKLIGHT_STEPSIZE));
+      }
+    } else {
+      // Dimmen zum Ausschalten
+      log_d("Dim backlight from on to off in %d ms", duration);
+      for (int i = 0; i < duration; i = i + DIMMING_BACKLIGHT_STEPSIZE) {
+        float t = 255 - ((float)255 * i) / duration;
+        analogWrite(PIN_LCD_BACKLIGHT, (int)t);
+        vTaskDelay(pdMS_TO_TICKS(DIMMING_BACKLIGHT_STEPSIZE));
+      }
+    }
+  }
+  // Finally use regular "digital" write to ensure the backlight is fully on/off
+  setBacklightEnabled(value);
+}
+
+
+
+SemaphoreHandle_t backlightSemaphore = NULL;
+
+/**
+ * Helper function to be used in separate task to run asynchronously
+ */
+void fadeBacklightTask(void *pvParameters) {
+  if (backlightSemaphore == NULL) {
+    backlightSemaphore = xSemaphoreCreateBinary();
+  } else {
+    if (!xSemaphoreTake(backlightSemaphore, pdMS_TO_TICKS(
+      _max(BACKLIGHT_DIMMING_DURATION_ON, BACKLIGHT_DIMMING_DURATION_OFF)))) {
+
+      log_e("Timeout taking semaphore for backlight fading!");
+      vTaskDelete(NULL); 
+    }
+  }
+
+  // The parameter provided when the task was created determines if this is to fade the backlight in or out
+  if ((bool) pvParameters ) {
+    setBacklightEnabled(true, BACKLIGHT_DIMMING_DURATION_ON);
+  } else {
+    setBacklightEnabled(false, BACKLIGHT_DIMMING_DURATION_OFF);
+  }
+  
+  xSemaphoreGive(backlightSemaphore);
+  vTaskDelete(NULL); // Delete this task when done
+}
+
+
+
+
+
+
+SemaphoreHandle_t ntpSyncSemaphore = NULL;
+
+void DateTimeTask(void *pvParameters) {
+  
+  log_i("NTP synching, please wait... ");
+
+  DateTime.setServer(NTP_SERVER);
+  DateTime.setTimeZone(TIMEZONE);
+
+  while (!DateTime.begin(NTP_SYNC_TIMEOUT)) {
+    log_i("Timeout, retrying\n");
+  }
+  log_i("Sync NTP done");
+
+  log_d("Date Now is %s\n", DateTime.toISOString().c_str());
+  log_d("Timestamp is %ld\n", DateTime.now());
+
+  xSemaphoreGive(ntpSyncSemaphore); // Give the semaphore to signal task completion
+  vTaskDelete(NULL); // Delete this task when done
+}
+
+void setupDateTime() {
+  printToLcd("NTP Sync");
+
+  ntpSyncSemaphore = xSemaphoreCreateBinary(); // Create the semaphore
+  xTaskCreate(
+    DateTimeTask, // Task function
+    "NTPSync",    // Name of the task
+    4096,         // Stack size (in words)
+    NULL,         // Task input parameter
+    1,            // Priority of the task
+    NULL          // Task handle
+  );
+
+  while (!xSemaphoreTake(ntpSyncSemaphore, pdMS_TO_TICKS(500))) { 
+    Serial.print(".");
+  }
+  vSemaphoreDelete(ntpSyncSemaphore); // Delete the semaphore
+}
+
+
+void setupWiFi() {
+  //WiFiManager, Local variable sufficient as once its business is done, there is no need to keep it any longer
+  WiFiManager wm;
+
+  log_i("WiFi connecting... ");
+
+  char buf[100];
+  snprintf(buf, sizeof(buf), "To setup Wifi connect to: %s", wm.getDefaultAPName().c_str());
+  printToLcd(buf);
+
+  // reset settings - wipe stored credentials for testing
+  // these are stored by the esp library
+  // wm.resetSettings();
+
+  wm.setConfigPortalBlocking(false); // asynchroneous mode in order to display the message on the LED matrix
+  if (!wm.autoConnect()) { // Try to reconnect to last WiFi or open non password protected AP with default name
+    while (!wm.process()) {
+      Serial.print(".");
+    }
+    log_i("WiFi successfully connected (using manual config in AP portal)");
+  } else {
+    log_i("WiFi successfully connected (using saved credentials)");
+  }
+}
+
+void disableWiFi() {
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
+  log_i("WiFi disabled");
+}
+
+// Function to disable Bluetooth
+void disableBluetooth() {
+  if (esp_bt_controller_get_status() == ESP_BT_CONTROLLER_STATUS_ENABLED) {
+      esp_err_t ret = esp_bt_controller_disable();
+      if (ret != ESP_OK) {
+          log_e("Bluetooth disable failed: %s\n", esp_err_to_name(ret));
+          return;
+      }
+  }
+
+  if (esp_bt_controller_get_status() == ESP_BT_CONTROLLER_STATUS_INITED) {
+      esp_err_t ret = esp_bt_controller_deinit();
+      if (ret != ESP_OK) {
+          log_e("Bluetooth deinit failed: %s\n", esp_err_to_name(ret));
+          return;
+      }
+  }
+
+  log_i("Bluetooth disabled");
+}
+
+
+void setupLCD() {
+    // enable LCD backlight
+  pinMode(PIN_LCD_BACKLIGHT, OUTPUT);
+  setBacklightEnabled(true);
+
+  lcd.init(); 
+  lcd.clear();
+  lcd.noCursor();
+  lcd.noBlink();
+  lcd.display();
+  lcd.backlight();
+}
+
+
+#ifdef HAS_BUTTONS
+  void setupButtons() {
+    pinMode(PIN_BUTTON_1, INPUT_PULLDOWN);
+    pinMode(PIN_BUTTON_2, INPUT_PULLDOWN);
+    pinMode(PIN_BUTTON_3, INPUT_PULLDOWN);
+    pinMode(PIN_BUTTON_4, INPUT_PULLDOWN);
+  }
 #endif
 
-  if (!rtc.begin()) {
-    Serial.println(F("Couldn't find RTC"));
-    Serial.flush();
-    while (1) delay(10);
-  }
-  Serial.println(F("RTC connected"));
+void setup() {
+  Serial.begin(115200);
 
-  if (rtc.lostPower()) {
-    Serial.println(F("RTC lost power, let's set the time!"));
-    // When time needs to be set on a new device, or after a power loss, the
-    // following line sets the RTC to the date & time this sketch was compiled
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-    // This line sets the RTC with an explicit date & time, for example to set
-    // January 21, 2014 at 3am you would call:
-    // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
-  }
-  DateTime now = rtc.now();
-  Serial.print(F("RTC already initialized: "));
-  Serial.print(now.year(), DEC);
-  Serial.print('/');
-  Serial.print(now.month(), DEC);
-  Serial.print('/');
-  Serial.print(now.day(), DEC);
-  Serial.print(' ');
-  Serial.print(now.hour(), DEC);
-  Serial.print(':');
-  Serial.print(now.minute(), DEC);
-  Serial.print(':');
-  Serial.print(now.second(), DEC);
-  Serial.println();
+  setupLCD();
 
+  disableBluetooth();
 
-  // When time needs to be re-set on a previously configured device, the
-  // following line sets the RTC to the date & time this sketch was compiled
-  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  // This line sets the RTC with an explicit date & time, for example to set
-  // January 21, 2014 at 3am you would call:
-  // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
+  // Sync with NTP only on initial startup. After that, power off Wifi to save energy
+  setupWiFi();
+  setupDateTime();
+  disableWiFi();
 
-#ifdef HAS_ENCODER
-  pinMode(PIN_ENCODER_SW, INPUT_PULLUP);
+  #ifdef HAS_BUTTONS
+    setupButtons();
+  #endif
+
+  // pinMode(PIN_ENCODER_SW, INPUT_PULLUP);
 
   // Attach rotary encoder press to interrupt callback on any change
   //  attachInterrupt(digitalPinToInterrupt(ENCODER_SW), Interrupt, CHANGE);
   // Enable Interrupt handling just in case
   //  interrupts();
-#endif
 
   last_stable_text[0] = 0;
 }
@@ -250,277 +316,260 @@ void setup() {
 
 
 
-
 #ifdef HAS_PAGE_TIME
-/// @brief Generates the text to display for the page "time"
-/// @param s Pointer to the string buffer to write the time to
-/// @param now The date and time to display
-void pageTime(char *s, DateTime now) {
+  /// @brief Generates the text to display for the page "time"
+  /// @param s Pointer to the string buffer to write the time to
+  /// @param now The date and time to display
+  void pageTime(char *s, tm now) {
+    switch (now.tm_min) {
+      case 0:
+      case 1:
+      case 2:
+        snprintf(s, STRING_BUFFER_SIZE, "%s", getHourOfTheDayLong(now.tm_hour));
+        break;
 
-  char buffer[50];
+      case 3:
+      case 4:
+      case 5:
+      case 6:
+      case 7:
+        snprintf(s, STRING_BUFFER_SIZE, "Fünf nach %s", getHourOfTheDay(now.tm_hour));
+        break;
 
-  switch (now.minute()) {
-    case 0:
-    case 1:
-    case 2:
-      getHourOfTheDayLong(buffer, now.hour());
-      snprintf(s, STRING_BUFFER_SIZE, "%s", buffer);
-      break;
+      case 8:
+      case 9:
+      case 10:
+      case 11:
+      case 12:
+        snprintf(s, STRING_BUFFER_SIZE, "Zehn nach %s", getHourOfTheDay(now.tm_hour));
+        break;
 
-    case 3:
-    case 4:
-    case 5:
-    case 6:
-    case 7:
-      getHourOfTheDay(buffer, now.hour());
-      snprintf(s, STRING_BUFFER_SIZE, "Fünf nach %s", buffer);
-      break;
+      case 13:
+      case 14:
+      case 15:
+      case 16:
+      case 17:
+        snprintf(s, STRING_BUFFER_SIZE, "Viertel nach %s", getHourOfTheDay(now.tm_hour));
+        break;
 
-    case 8:
-    case 9:
-    case 10:
-    case 11:
-    case 12:
-      getHourOfTheDay(buffer, now.hour());
-      snprintf(s, STRING_BUFFER_SIZE, "Zehn nach %s", buffer);
-      break;
+      case 18:
+      case 19:
+      case 20:
+      case 21:
+      case 22:
+        snprintf(s, STRING_BUFFER_SIZE, "Zehn vor halb %s", getHourOfTheDay((now.tm_hour + 1) % 24));
+        break;
 
-    case 13:
-    case 14:
-    case 15:
-    case 16:
-    case 17:
-      getHourOfTheDay(buffer, now.hour());
-      snprintf(s, STRING_BUFFER_SIZE, "Viertel nach %s", buffer);
-      break;
+      case 23:
+      case 24:
+      case 25:
+      case 26:
+      case 27:
+        snprintf(s, STRING_BUFFER_SIZE, "Fünf vor halb %s", getHourOfTheDay((now.tm_hour + 1) % 24));
+        break;
 
-    case 18:
-    case 19:
-    case 20:
-    case 21:
-    case 22:
-      getHourOfTheDay(buffer, (now.hour() + 1) % 24);
-      snprintf(s, STRING_BUFFER_SIZE, "Zehn vor halb %s", buffer);
-      break;
+      case 28:
+      case 29:
+      case 30:
+      case 31:
+      case 32:
+        snprintf(s, STRING_BUFFER_SIZE, "Halb %s", getHourOfTheDay((now.tm_hour + 1) % 24));
+        break;
 
-    case 23:
-    case 24:
-    case 25:
-    case 26:
-    case 27:
-      getHourOfTheDay(buffer, (now.hour() + 1) % 24);
-      snprintf(s, STRING_BUFFER_SIZE, "Fünf vor halb %s", buffer);
-      break;
+      case 33:
+      case 34:
+      case 35:
+      case 36:
+      case 37:
+        snprintf(s, STRING_BUFFER_SIZE, "Fünf nach halb %s", getHourOfTheDay((now.tm_hour + 1) % 24));
+        break;
 
-    case 28:
-    case 29:
-    case 30:
-    case 31:
-    case 32:
-      getHourOfTheDay(buffer, (now.hour() + 1) % 24);
-      snprintf(s, STRING_BUFFER_SIZE, "Halb %s", buffer);
-      break;
+      case 38:
+      case 39:
+      case 40:
+      case 41:
+      case 42:
+        snprintf(s, STRING_BUFFER_SIZE, "Zehn nach halb %s", getHourOfTheDay((now.tm_hour + 1) % 24));
+        break;
 
-    case 33:
-    case 34:
-    case 35:
-    case 36:
-    case 37:
-      getHourOfTheDay(buffer, (now.hour() + 1) % 24);
-      snprintf(s, STRING_BUFFER_SIZE, "Fünf nach halb %s", buffer);
-      break;
+      case 43:
+      case 44:
+      case 45:
+      case 46:
+      case 47:
+        snprintf(s, STRING_BUFFER_SIZE, "Viertel vor %s", getHourOfTheDay((now.tm_hour + 1) % 24));
+        break;
 
-    case 38:
-    case 39:
-    case 40:
-    case 41:
-    case 42:
-      getHourOfTheDay(buffer, (now.hour() + 1) % 24);
-      snprintf(s, STRING_BUFFER_SIZE, "Zehn nach halb %s", buffer);
-      break;
+      case 48:
+      case 49:
+      case 50:
+      case 51:
+      case 52:
+        snprintf(s, STRING_BUFFER_SIZE, "Zehn vor %s", getHourOfTheDay((now.tm_hour + 1) % 24));
+        break;
 
-    case 43:
-    case 44:
-    case 45:
-    case 46:
-    case 47:
-      getHourOfTheDay(buffer, (now.hour() + 1) % 24);
-      snprintf(s, STRING_BUFFER_SIZE, "Viertel vor %s", buffer);
-      break;
+      case 53:
+      case 54:
+      case 55:
+      case 56:
+      case 57:
+        snprintf(s, STRING_BUFFER_SIZE, "Fünf vor %s", getHourOfTheDay((now.tm_hour + 1) % 24));
+        break;
 
-    case 48:
-    case 49:
-    case 50:
-    case 51:
-    case 52:
-      getHourOfTheDay(buffer, (now.hour() + 1) % 24);
-      snprintf(s, STRING_BUFFER_SIZE, "Zehn vor %s", buffer);
-      break;
+      case 58:
+      case 59:
+        snprintf(s, STRING_BUFFER_SIZE, "%s", getHourOfTheDayLong((now.tm_hour + 1) % 24));
+        break;
 
-    case 53:
-    case 54:
-    case 55:
-    case 56:
-    case 57:
-      getHourOfTheDay(buffer, (now.hour() + 1) % 24);
-      snprintf(s, STRING_BUFFER_SIZE, "Fünf vor %s", buffer);
-      break;
-
-    case 58:
-    case 59:
-      getHourOfTheDayLong(buffer, (now.hour() + 1) % 24);
-      snprintf(s, STRING_BUFFER_SIZE, "%s", buffer);
-      break;
-
-    default:
-      Serial.println("FEHLER!");
-      snprintf(s, STRING_BUFFER_SIZE, "FEHLER! Unplausible Uhrzeit");
+      default:
+        log_e("Inplausible time!");
+        snprintf(s, STRING_BUFFER_SIZE, "FEHLER! Unplausible Uhrzeit");
+    }
   }
-}
 #endif
 
 
 #ifdef HAS_PAGE_DATE
-/// @brief Generates the text to display for the page "date"
-/// @param s Pointer to the string buffer to write the date to
-/// @param now The date and time to display
-void pageDate(char *s, DateTime now) {
-
-  char month[50];
-  getMonthOfTheYear(month, now.month() - 1);
-
-  char dayOfTheWeek[50];
-  getDayOfTheWeek(dayOfTheWeek, now.dayOfTheWeek());
-
-  snprintf(s, STRING_BUFFER_SIZE, "%s der %d. %s", dayOfTheWeek, now.day(), month);
-}
-#endif
-
-
-#ifdef HAS_PAGE_TEMP
-/// @brief Generates the text to display for the page "temp"
-/// @param s Pointer to the string buffer to write the temp to
-void pageTemp(char *s) {
-  float f = rtc.getTemperature();
-  int val_int = (int)f;
-  int val_fra = (int)((f - val_int) * 10);
-  snprintf(s, STRING_BUFFER_SIZE, "%d.%d Grad Celsius", val_int, val_fra);
-}
+  /// @brief Generates the text to display for the page "date"
+  /// @param s Pointer to the string buffer to write the date to
+  /// @param now The date and time to display
+  void pageDate(char *s, tm now) {
+    const char* month = getMonthOfTheYear(now.tm_mon);
+    const char* dayOfTheWeek = getDayOfTheWeek(now.tm_wday);
+    snprintf(s, STRING_BUFFER_SIZE, "%s der %d. %s", dayOfTheWeek, now.tm_mday, month);
+  }
 #endif
 
 
 
-
+#ifdef HAS_BUTTONS
+  // Last state of buttons
+  bool t1, t2, t3, t4;
+#endif
 
 /// @brief Core loop executed repeatedly after initialization
 void loop() {
-  DateTime now = rtc.now();
+  unsigned long t0 = micros();
 
-  #ifdef HAS_ENCODER
-    long p = meinEncoder.read() / 4;
-    bool encoder_pressed = digitalRead(PIN_ENCODER_SW) == LOW;
+  time_t now = DateTime.now();
+  struct tm *tm = localtime(&now);
+
+  // Adjust for daylight saving time if necessary
+  if (tm->tm_isdst > 0) {
+    tm->tm_hour += 1;
+    mktime(tm); // Normalize the time structure
+  }
+
+
+  #ifdef HAS_BUTTONS
+    bool t1_pos = false;
+    if (!digitalRead(PIN_BUTTON_1)) {
+      // Button pressed
+      if (!t1) {
+        t1 = true;
+        t1_pos = true;
+      }
+    } else {
+      t1 = false;
+    }
+
+    bool t2_pos = false;
+    if (!digitalRead(PIN_BUTTON_2)) {
+      // Button pressed
+      if (!t2) {
+        t2 = true;
+        t2_pos = true;
+      }
+    } else {
+      t2 = false;
+    }
+
+    bool t3_pos = false;
+    if (!digitalRead(PIN_BUTTON_3)) {
+      // Button pressed
+      if (!t3) {
+        t3 = true;
+        t3_pos = true;
+      }
+    } else {
+      t3 = false;
+    }
+
+    bool t4_pos = false;
+    if (!digitalRead(PIN_BUTTON_4)) {
+      // Button pressed
+      if (!t4) {
+        t4 = true;
+        t4_pos = true;
+      }
+    } else {
+      t4 = false;
+    }
+
 
     // Activate backlight for predefined time after button was pressed or turned
     #ifdef BACKLIGHT_ON_TIME
       if (
-        p != encoderPos         // ...if encoder rotated
+        t1 || t2 || t3 || t4 // Any key pressed?
         || displayOnUntil == 0  // ... on startup
-        || encoder_pressed      // ... if encoder pressed
       ) {
         // Turn on display
-        Serial.println(F("Trigger display backlight"));
-        displayOnUntil = now.unixtime() + BACKLIGHT_ON_TIME;
+        log_i("Trigger display backlight");
+
+        displayOnUntil = now + BACKLIGHT_ON_TIME;
       }
 
-      if (now.unixtime() < displayOnUntil) {
-        if (!lcd.isBacklightEnabled()) {
+      if (now < displayOnUntil) {
+        if (!isBacklightEnabled()) {
+          log_i("Turning Backlight on...");
           #ifdef BACKLIGHT_DIMMING_DURATION_ON
-            lcd.setBacklightEnabled(true, BACKLIGHT_DIMMING_DURATION_ON);
+            xTaskCreate(
+              fadeBacklightTask, // Task function
+              "fadeInBacklight", // Name of the task
+              4096,              // Stack size (in words)
+              (void*)true,       // Task input parameter
+              1,                 // Priority of the task
+              NULL               // Task handle
+            );
           #else
-            lcd.setBacklightEnabled(true);
+            setBacklightEnabled(true);
           #endif
-          #ifdef CONTRAST_DIMMING_DURATION_ON
-            lcd.setContrast(CONTRAST_DISPLAY_ACTIVE, CONTRAST_DIMMING_DURATION_ON);
-          #endif
-          Serial.println(F("Backlight turned on"));
+          log_i("Backlight turned on");
         }
       } else {
-        if (lcd.isBacklightEnabled()) {
-          #ifdef CONTRAST_DIMMING_DURATION_OFF
-            lcd.setContrast(CONTRAST_DISPLAY_INACTIVE, CONTRAST_DIMMING_DURATION_OFF);
-          #endif
+        if (isBacklightEnabled()) {
+          log_i("Turning Backlight off...");
           #ifdef BACKLIGHT_DIMMING_DURATION_OFF
-            lcd.setBacklightEnabled(false, BACKLIGHT_DIMMING_DURATION_OFF);
+            xTaskCreate(
+              fadeBacklightTask,  // Task function
+              "fadeOutBacklight", // Name of the task
+              4096,               // Stack size (in words)
+              (void*)false,       // Task input parameter
+              1,                  // Priority of the task
+              NULL                // Task handle
+            );
           #else
-            lcd.setBacklightEnabled(false);
+            setBacklightEnabled(false);
           #endif
-          Serial.println(F("Backlight turned off"));
+          log_i("Backlight turned off");
         }
       }
     #endif
 
-    // Has encoder been rotated?
-    if (p != encoderPos && encoder_pressed) {
-      switch (page) {
-        #ifdef HAS_PAGE_TIME
-          case t_page::PAGE_TIME:
-            // if encoder is pressed and turned, then adjust time or date
-            if (p < encoderPos) {
-              Serial.println(F("Adjust time +5min"));
-              DateTime newTime(now + TimeSpan(300));
-              rtc.adjust(newTime);
-            } else {
-              Serial.println(F("Adjust time -5min"));
-              DateTime newTime(now - TimeSpan(300));
-              rtc.adjust(newTime);
-            }
-            break;
-        #endif
-        #ifdef HAS_PAGE_DATE
-          case t_page::PAGE_DATE:
-            // if encoder is pressed and turned, then adjust time or date
-            if (p < encoderPos) {
-              Serial.println(F("Adjust time +1day"));
-              DateTime newTime(now + TimeSpan(1, 0, 0, 0));
-              rtc.adjust(newTime);
-            } else {
-              Serial.println(F("Adjust time -1day"));
-              DateTime newTime(now - TimeSpan(1, 0, 0, 0));
-              rtc.adjust(newTime);
-            }
-            break;
-        #endif
-        #ifdef HAS_PAGE_TEMP
-          case t_page::PAGE_TEMP:
-            Serial.println(F("Cannot adjust temperature"));
-            break;
-        #endif
-        default:
-          Serial.println(F("Unknown page"));
+    if (t1_pos) {
+      page = static_cast<t_page>(page + 1);
+      if (page == t_page::MAX_VALUE) {
+        page = static_cast<t_page>(0);
       }
-      now = rtc.now();
-      animation.start(ANIMATION_DELAY_CHANGE_VALUE_FRAMES, ANIMATION_DELAY_CHANGE_VALUE_TYPE);
+      animation.start(ANIMATION_NEXT_PAGE_FRAMES, ANIMATION_NEXT_PAGE_TYPE);
+      log_i("Next page: %d", page);
     }
-
-    if (p != encoderPos && !encoder_pressed && animation.isEnded()) {
-      // In case encoder is just turned without being pressed, then flip pages
-      if (p < encoderPos) {
-        page = static_cast<t_page>(page + 1);
-        if (page == t_page::MAX_VALUE) {
-          page = static_cast<t_page>(0);
-        }
-        animation.start(ANIMATION_DELAY_SWITCH_PAGE_FRAMES, ANIMATION_DELAY_SWITCH_PAGE_CW_TYPE);
-        Serial.println(F("Next page flip animation started"));
-      } else if (p > encoderPos) {
-        page = (page) ? static_cast<t_page>(page - 1) : static_cast<t_page>(t_page::MAX_VALUE - 1);
-        animation.start(ANIMATION_DELAY_SWITCH_PAGE_FRAMES, ANIMATION_DELAY_SWITCH_PAGE_CCW_TYPE);
-        Serial.println(F("Previous page flip animation started"));
-      }
+    if (t4_pos) {
+      page = (page) ? static_cast<t_page>(page - 1) : static_cast<t_page>(t_page::MAX_VALUE - 1);
+      animation.start(ANIMATION_PREVIOUS_PAGE_FRAMES, ANIMATION_PREVIOUS_PAGE_TYPE);
+      log_i("Previous page: %d", page);
     }
-    encoderPos = p;
   #endif
-
-
 
 
 
@@ -530,12 +579,12 @@ void loop() {
   switch (page) {
 #ifdef HAS_PAGE_TIME
     case t_page::PAGE_TIME:
-      pageTime(s1, now);
+      pageTime(s1, *tm);
       break;
 #endif
 #ifdef HAS_PAGE_DATE
     case t_page::PAGE_DATE:
-      pageDate(s1, now);
+      pageDate(s1, *tm);
       break;
 #endif
 #ifdef HAS_PAGE_TEMP
@@ -544,44 +593,48 @@ void loop() {
       break;
 #endif
     default:
-      Serial.println(F("Unknown page"));
+      log_e("Unknown page");
   }
-
-  lcd.normalizeUmlaute(s1);
-  lcd.centerStringToDimensions(s2, s1, TEXT_WORD_WRAP, TEXT_ALIGNMENT);
-
+  formatString(s2, s1, LCD_CHAR_PER_LINE, LCD_LINES, weights);
 
   // If a change in the text was detected and there is currently no running animation, then start an animation
   if (animation.isEnded() && strcmp(s2, last_stable_text) != 0) {
-    if (!encoder_pressed) {
-      animation.start(ANIMATION_TEXT_CHANGE_FRAMES, ANIMATION_TEXT_CHANGE_TYPE);
-      Serial.println(F("Text change animation started!"));
-    }
+    animation.start(ANIMATION_TEXT_CHANGE_FRAMES, ANIMATION_TEXT_CHANGE_TYPE);
+    log_i("Text change animation started");
   }
 
   // Render animation frame if still running
   if (!animation.isEnded()) {
     animation.tick();
     animation.apply(s1, last_stable_text, s2);
-/*
-    Serial.print("Animate: \"");
-    Serial.print(last_stable_text);
-    Serial.print("\"--> \"");
-    Serial.print(s2);
-    Serial.print("\" = \"");
-    Serial.print(s1);
-    Serial.println("\"");
-  */  
-    lcd.print(s1);
+
+    lcd.setCursor(0, 0);
+    lcd.printstr(s1);
 
     // if this was last frame and animation has now ended, then store the final state
     if (animation.isEnded()) {
-      Serial.println(F("Animation endet"));
+      log_i("Animation endet");
       strcpy(last_stable_text, s1);
 //      printStringToLCD(s2);
-    } else {
-      delay(ANIMATION_FRAME_DURATION);
-    }
-  }
+    } 
+  } 
 
+
+  unsigned long render_duration = (micros()-t0) / 1000;
+  log_d("Rendering cycle took %dms (%d FPS)", render_duration, 1000/render_duration);
+
+  // If animation not yet ended, then wait for remaining time of frame duration, else just go on as fast as possible
+  if (!animation.isEnded()) {
+    if (render_duration > ANIMATION_FRAME_DURATION) {
+      log_w("Render cycle to slow, exceeded time");
+    } else {
+      vTaskDelay(pdMS_TO_TICKS(ANIMATION_FRAME_DURATION - render_duration));
+    }
+
+  } else {
+    // Save some energy by limiting speed of idle loop
+    if (render_duration < IDLE_CYCLE) {
+      vTaskDelay(pdMS_TO_TICKS(IDLE_CYCLE - render_duration));
+    }    
+  }
 }

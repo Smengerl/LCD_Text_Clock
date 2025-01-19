@@ -27,31 +27,6 @@ bool TextAnimation::isEnded() {
 
 void TextAnimation::apply(char *dest, char *beginFrame, char *endFrame) {
  
-  Serial.print(F("Animation "));
-  switch (animation_Type) {
-    case ANIMATION_TYPE_OVERLAY_LEFT:
-      Serial.print(F("OVERLAY_LEFT"));
-      break;
-    case ANIMATION_TYPE_OVERLAY_RIGHT:
-      Serial.print(F("OVERLAY_RIGHT"));
-      break;
-    case ANIMATION_TYPE_MATRIX:
-      Serial.print(F("MATRIX"));
-      break;
-    case ANIMATION_TYPE_WRITE:
-      Serial.print(F("WRITE"));
-      break;
-  }
-  Serial.print(F(" ("));
-  Serial.print(remaining_animation_frames);
-  Serial.print(F("/"));
-  Serial.print(total_animation_frames);
-  Serial.print(F("): \""));
-  Serial.print(beginFrame);
-  Serial.print(F("\" --> \""));
-  Serial.print(endFrame);
-  Serial.print(F("\""));
-
   for (uint16_t i = 0; i < maxWidth*maxHeight; i++) {
     if (i >= strlen(endFrame)) {
       endFrame[i] = 0;
@@ -70,7 +45,6 @@ void TextAnimation::apply(char *dest, char *beginFrame, char *endFrame) {
 
     } else if (animation_Type == ANIMATION_TYPE_OVERLAY_LEFT) {
       // alten Text von rechts nach links durch neuen Text ersetzen
-      //Serial.print(F("OVERLAY_LEFT"));
       if ((i % maxWidth) >= ((float)(remaining_animation_frames) / (float)total_animation_frames) * maxWidth) {
         dest[i] = endFrame[i];
       } else {
@@ -81,7 +55,6 @@ void TextAnimation::apply(char *dest, char *beginFrame, char *endFrame) {
 
     } else if (animation_Type == ANIMATION_TYPE_OVERLAY_RIGHT) {
       // alten Text von links nach rechts durch neuen Text ersetzen
-      //Serial.print(F("OVERLAY_RIGHT"));
       if ((i % maxWidth) <= ((float)(total_animation_frames - remaining_animation_frames) / (float)total_animation_frames) * maxWidth) {
         dest[i] = endFrame[i];
       } else {
@@ -119,7 +92,6 @@ void TextAnimation::apply(char *dest, char *beginFrame, char *endFrame) {
 
     } else if (animation_Type == ANIMATION_TYPE_WRITE) {
       // Zeilen nacheinander von leer aus aufbauen
-      //Serial.print(F("WRITE"));
       float percentage = (float)(total_animation_frames - remaining_animation_frames) / (float)total_animation_frames;
       if (i < strlen(endFrame) * percentage) {
         dest[i] = endFrame[i];
@@ -129,11 +101,24 @@ void TextAnimation::apply(char *dest, char *beginFrame, char *endFrame) {
 
 
     } else {
-      Serial.print(F("UNKNOWN ANIMATION TYPE"));
+      log_e("UNKNOWN ANIMATION TYPE");
       dest[i] = endFrame[i];
     }
   }
-  Serial.print(F(" ==== \""));
-  Serial.print(dest);
-  Serial.println(F("\""));
+
+
+  switch (animation_Type) {
+    case ANIMATION_TYPE_OVERLAY_LEFT:
+      log_d("Animation: OVERLAY_LEFT (%d/%d) = %s", remaining_animation_frames, total_animation_frames, dest);
+      break;
+    case ANIMATION_TYPE_OVERLAY_RIGHT:
+      log_d("Animation: OVERLAY_RIGHT (%d/%d) = %s", remaining_animation_frames, total_animation_frames, dest);
+      break;
+    case ANIMATION_TYPE_MATRIX:
+      log_d("Animation: MATRIX (%d/%d = %s", remaining_animation_frames, total_animation_frames, dest);
+      break;
+    case ANIMATION_TYPE_WRITE:
+      log_d("Animation: WRITE (%d/%d) = %s", remaining_animation_frames, total_animation_frames, dest);
+      break;
+  }
 }
