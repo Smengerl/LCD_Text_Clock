@@ -39,6 +39,19 @@ enum t_page {
 #endif
 #endif
 
+
+#if (LCD_LINES != 4 && LCD_LINES != 2)
+#error "LCD_LINES must be 1, 2 or 4"
+#endif
+#if (LCD_LINES == 4 && LCD_CHAR_PER_LINE != 20)
+#error "Unsupported display type: 4 line display must have 20 character"
+#endif
+#if (LCD_LINES == 2 && LCD_CHAR_PER_LINE != 16)
+#error "Unsupported display type: 2 line display must have 16 character"
+#endif
+
+
+
 t_page page(START_PAGE);
 
 

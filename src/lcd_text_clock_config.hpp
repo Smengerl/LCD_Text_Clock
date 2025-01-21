@@ -56,9 +56,9 @@
 #endif
 
 /** Make sure to use a analog output pin to be able to use PWM (3, 5, 6, 9, 10 and 11 on Uno) */
+// GPIO 32 --> LCD Backlight
 #define PIN_LCD_BACKLIGHT 32
 
-// GPIO 32 --> LCD Backlight
 // GPIO 22 --> LCD I2C SCL
 // GPIO 21 --> LCD I2C SDA
 #define I2C_ADDRESS_LCD 0x27
