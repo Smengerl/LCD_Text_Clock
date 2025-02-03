@@ -4,7 +4,7 @@ A text-based clock using an LCD display with I2C interface on an ESP microcontro
 - Displays the current time and date as text like "five minutes to four"
 - 16x2, 40*2 or 20x4 character LCD display support
 - Customizable animations
-- Supports buttons to flip between modes showing different information and can be easily extended by further or them 
+- Supports buttons to flip between modes showing different informationwhich can be easily extended 
 - Automatic backlight switching and dimming (optional feature) 
 - Automatic time synchronization using NTP
 
