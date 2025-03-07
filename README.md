@@ -17,6 +17,15 @@ The whole project rather serves as an example how text on a LCD display can be b
 <img src="./print/photos/example_usage.jpg" alt="example_usage"/>
 
 
+# Index
+- [Mechanics](#Mechanics)
+- [Electronics](#Electronics)
+- [Software](#Software)
+- [Usage](#Usage)
+- [Customization ideas](#customization_ideas)
+- [Acknowledgements](#Acknowledgements)
+
+
 
 ## Mechanics
 
@@ -111,7 +120,9 @@ Total cost about 10-15 USD!
 <img src="./schematics/breadboard.png" alt="schematics"/>
 
 
-## Software Requirements
+## Software
+
+### Prerequisites
 
 - PlatformIO
 - LiquidCrystal_I2C (via PIO)
@@ -119,7 +130,7 @@ Total cost about 10-15 USD!
 - WiFiManager (via PIO)
 
 
-## Installation
+### Installation
 
 1. Clone the repository:
    ```sh
@@ -144,3 +155,9 @@ Total cost about 10-15 USD!
 - Add more pages, e.g. showing sensor data
 - Get weather forecast via internet and display it on the screen with custom characters
 - Write your own animations for text transitions
+
+
+## Acknowledgements
+ESPDateTime library by mcxiaoke
+WiFiManager by wnatth3
+LiquidCrystal_I2C by marcoschwartz
