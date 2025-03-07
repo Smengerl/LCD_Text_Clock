@@ -158,6 +158,6 @@ Total cost about 10-15 USD!
 
 
 ## Acknowledgements
-ESPDateTime library by mcxiaoke
-WiFiManager by wnatth3
-LiquidCrystal_I2C by marcoschwartz
+- ESPDateTime library by mcxiaoke
+- WiFiManager by wnatth3
+- LiquidCrystal_I2C by marcoschwartz
