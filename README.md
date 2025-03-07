@@ -10,11 +10,10 @@ A text-based clock using an LCD display with I2C interface on an ESP microcontro
 
 The whole project rather serves as an example how text on a LCD display can be beautifully presented to users and can easily be extended/adapter to match your usecase.
 
-1. Without pushbuttons
-<img src="./print/photos/example_usage_nobuttons.jpg" alt="example_usage_nobuttons"/>
+| Without pushbuttons | With 4 pushbuttons |
+| ---------------------------- | --------------------------------------------------------------------|
+| ![example_usage_nobuttons](./print/photos/example_usage_nobuttons.jpg)  | ![example_usage](./print/photos/example_usage.jpg) |
 
-1. With 4 pushbuttons
-<img src="./print/photos/example_usage.jpg" alt="example_usage"/>
 
 
 # Index
