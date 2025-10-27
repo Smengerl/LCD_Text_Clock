@@ -160,3 +160,22 @@ Total cost about 10-15 USD!
 - ESPDateTime library by mcxiaoke
 - WiFiManager by wnatth3
 - LiquidCrystal_I2C by marcoschwartz
+
+
+
+
+## Development
+
+Contributions are welcome — see `CONTRIBUTING.md` for details.
+
+## License
+
+This project is licensed under the Beerware License — see `LICENSE.txt` for details.
+
+## Authors
+
+- Simon Gerlach <https://github.com/Smenger>
+
+---
+
+If something in this README is missing or unclear, please open an issue in the repository so the instructions can be improved.
