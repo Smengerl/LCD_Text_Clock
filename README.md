@@ -1,5 +1,9 @@
 # LCD Text Clock
 
+[![3D Printing](https://img.shields.io/badge/3D_printing-STL-green)](#)
+[![ESPhome](https://img.shields.io/badge/homeassistant-ESPhome-green)](#)
+[![License](https://img.shields.io/badge/license-Beerware-green)](#)
+
 A text-based clock using an LCD display with I2C interface on an ESP microcontroller with automatic NTP time sync.
 - Displays the current time and date as text like "five minutes to four"
 - 16x2, 40*2 or 20x4 character LCD display support
