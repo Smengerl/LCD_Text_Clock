@@ -170,7 +170,8 @@ Total cost about 10-15 USD!
 
 ## Development
 
-Contributions are welcome — see `CONTRIBUTING.md` for details.
+Contributions are welcome.  
+See `CONTRIBUTING.md` for details and follow the `CODE_OF_CONDUCT.md` when contributing.
 
 ## License
 
