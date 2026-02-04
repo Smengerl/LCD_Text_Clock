@@ -58,10 +58,10 @@ Very simple housing that consist of a front and a back piece (Shown is the versi
 
 | Filename                       | Thumbnail                                                                              | Required | Notes |
 | ------------------------------ | ---------------------------------------------------------------------------------------| -------- | ------|
-| `./print/Lower_part.stl`       | <img src="./print/rendering/Lower_part.png" alt="Lower part" width="300"/>             | 1        |       |
-| `./print/Upper_part.stl`       | <img src="./print/rendering/Upper_part.png" alt="Upper part" width="300"/>             | 1        |       |
-| `./print/Pushbutton_base.stl`  | <img src="./print/rendering/Pushbutton_base.png" alt="Pushbutton_base" width="300"/>   | 1        |       |
-| `./print/Pushbutton_cover.stl` | <img src="./print/rendering/Pushbutton_cover.png" alt="Pushbutton_cover" width="300"/> | 1        |       |
+| `./print/stl/Lower_part.stl`       | <img src="./print/png/Lower_part.png" alt="Lower part" width="300"/>             | 1        |       |
+| `./print/stl/Upper_part.stl`       | <img src="./print/png/Upper_part.png" alt="Upper part" width="300"/>             | 1        |       |
+| `./print/stl/Pushbutton_base.stl`  | <img src="./print/png/Pushbutton_base.png" alt="Pushbutton_base" width="300"/>   | 1        |       |
+| `./print/stl/Pushbutton_cover.stl` | <img src="./print/png/Pushbutton_cover.png" alt="Pushbutton_cover" width="300"/> | 1        |       |
 
 
 Printer settings:
@@ -172,6 +172,8 @@ Total cost about 10-15 USD!
 
 Contributions are welcome.  
 See `CONTRIBUTING.md` for details and follow the `CODE_OF_CONDUCT.md` when contributing.
+
+All .stl, .png, and assembly pictures are automatically exported via my Fusion add-in, see [here](https://github.com/smengerl/fusion-exporter)
 
 ## License
 
