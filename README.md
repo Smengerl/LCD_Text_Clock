@@ -49,8 +49,8 @@ Very simple housing that consist of a front and a back piece (Shown is the versi
 
 | Filename                           | Thumbnail                                                                            | Required | Notes |
 | ---------------------------------- | -------------------------------------------------------------------------------------| -------- | ------|
-| `./print/Lower_part_nobuttons.stl` | <img src="./print/rendering/Lower_part_nobuttons.png" alt="Lower part" width="300"/> | 1        |       |
-| `./print/Upper_part_nobuttons.stl` | <img src="./print/rendering/Upper_part_nobuttons.png" alt="Upper part" width="300"/> | 1        |       |
+| `./print/stl/Lower_part_nobuttons.stl` | <img src="./print/png/Lower_part_nobuttons.png" alt="Lower part" width="300"/> | 1        |       |
+| `./print/stl/Upper_part_nobuttons.stl` | <img src="./print/png/Upper_part_nobuttons.png" alt="Upper part" width="300"/> | 1        |       |
 
 
 2. With 4 pushbuttons:
@@ -94,7 +94,7 @@ Printer settings:
 
 
 
-![assembly](./print/rendering/assembly.gif)
+![assembly](./print/assembly.gif)
 
 
 
