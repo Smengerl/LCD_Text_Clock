@@ -5,6 +5,18 @@
 [![License](https://img.shields.io/badge/license-CC%20BY--SA%204.0-blue)](http://creativecommons.org/licenses/by-sa/4.0/)
 
 A text-based clock using an LCD display with I2C interface on an ESP microcontroller with automatic NTP time sync.
+
+## Table of Contents
+- [Mechanics](#mechanics)
+- [Electronics](#electronics)
+- [Software](#software)
+- [Usage](#usage)
+- [Customization Ideas](#customization-ideas)
+- [Acknowledgements](#acknowledgements)
+- [Development](#development)
+- [License](#license)
+- [Authors](#authors)
+
 - Displays the current time and date as text like "five minutes to four"
 - 16x2, 40*2 or 20x4 character LCD display support
 - Customizable animations
