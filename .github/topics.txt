@@ -1,6 +1,6 @@
 3d-printing
 esp32
 esp32-arduino
-hdd44780
+hd44780
 maker
 

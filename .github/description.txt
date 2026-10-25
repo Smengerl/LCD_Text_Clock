@@ -1,1 +1,1 @@
-Multi purpose textual clock with LCD (HDD44780) based on ESP32
+Multi purpose textual clock with LCD (HD44780) based on ESP32

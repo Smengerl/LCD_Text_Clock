@@ -32,16 +32,6 @@ The whole project rather serves as an example how text on a LCD display can be b
 
 
 
-# Index
-- [Mechanics](#Mechanics)
-- [Electronics](#Electronics)
-- [Software](#Software)
-- [Usage](#Usage)
-- [Customization ideas](#customization_ideas)
-- [Acknowledgements](#Acknowledgements)
-
-
-
 ## Mechanics
 
 Two different types of housings for 20*4 LCD displays are provided.
